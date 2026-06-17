@@ -8,6 +8,14 @@ This guide is for trying Yomi from npm or from this repository.
 - Bun only when developing this repository locally
 - Playwright Chromium only when running browser verification
 
+This repository pins local tool versions with `mise.toml`:
+
+```bash
+mise install
+```
+
+The current pinned versions are Node.js 22.13.1 and Bun 1.3.13.
+
 ## Try Without Installing
 
 The fastest way to see Yomi's core contract is to use the bundled demo graph.
@@ -59,6 +67,7 @@ npx yomi skill --all --scope project
 Install repository dependencies:
 
 ```bash
+mise install
 npm install
 ```
 

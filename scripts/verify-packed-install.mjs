@@ -180,18 +180,9 @@ writeFileSync(
   join(appRoot, "package.json"),
   JSON.stringify(
     {
+      name: "yomi-packed-install-verification",
       private: true,
       type: "module",
-      dependencies: {
-        [rootPackageName]: `file:${rootTarball}`,
-        [platformPackage.name]: `file:${platformTarball}`,
-      },
-      overrides: Object.fromEntries(
-        [...platformTarballs.entries()].map(([packageName, tarball]) => [
-          packageName,
-          `file:${tarball}`,
-        ]),
-      ),
     },
     null,
     2,
@@ -203,11 +194,11 @@ run(
   "npm",
   [
     "install",
-    "--ignore-scripts",
+    rootTarball,
+    platformTarball,
     "--no-audit",
     "--no-fund",
     "--legacy-peer-deps",
-    "--omit=optional",
   ],
   appRoot,
 );

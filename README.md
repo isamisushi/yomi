@@ -59,6 +59,7 @@ Start here: [yomi-docs.fly.dev](https://yomi-docs.fly.dev/)
 ## Local Development
 
 ```bash
+mise install
 npm install
 npm run yomi -- index --demo --output .yomi/demo-graph.json
 npm run yomi -- repair "Customer search" --graph .yomi/demo-graph.json

@@ -4,6 +4,11 @@
   "private": true,
   "license": "MIT",
   "type": "module",
+  "packageManager": "npm@10.9.2",
+  "engines": {
+    "node": ">=22.13.1 <23",
+    "bun": ">=1.3.13 <1.4"
+  },
   "scripts": {
     "build": "tsc -b && vite build",
     "build:cli": "crust build --entry src/cli.ts --name yomi --target darwin-arm64 --outdir .crust/bin",
