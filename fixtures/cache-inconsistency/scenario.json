@@ -1,0 +1,64 @@
+{
+  "name": "cache-inconsistency",
+  "steps": [
+    {
+      "kind": "open"
+    },
+    {
+      "kind": "clickByTestId",
+      "testId": "archive-paper"
+    },
+    {
+      "kind": "waitForTestId",
+      "testId": "product-list"
+    }
+  ],
+  "observations": [
+    {
+      "id": "visibleProducts",
+      "kind": "textContent",
+      "testId": "product-list",
+      "source": {
+        "file": "src/App.tsx",
+        "line": 41,
+        "symbol": "ProductArchivePanel"
+      },
+      "graphNodeId": "product-archive-panel"
+    },
+    {
+      "id": "serverProducts",
+      "kind": "textContent",
+      "testId": "server-products",
+      "source": {
+        "file": "src/App.tsx",
+        "line": 89,
+        "symbol": "onClick"
+      },
+      "graphNodeId": "product-archive-panel-on-click-1-action"
+    }
+  ],
+  "assertions": [
+    {
+      "id": "visible-products-follow-archive",
+      "actual": "visibleProducts",
+      "equals": "Pencil",
+      "message": "Visible product cache should update after Paper is archived.",
+      "source": {
+        "file": "src/App.tsx",
+        "line": 68,
+        "symbol": "invalidateQueries"
+      },
+      "graphNodeId": "product-archive-panel-invalidate-1-cache"
+    }
+  ],
+  "repairTarget": {
+    "kind": "ui",
+    "target": "Archive Paper"
+  },
+  "editTarget": {
+    "file": "src/App.tsx",
+    "line": 68,
+    "symbol": "invalidateQueries"
+  },
+  "suggestedFixShape": "Use the same cache key for the product list query and invalidation, then verify the browser-visible list updates after archive."
+}

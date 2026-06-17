@@ -1,0 +1,64 @@
+{
+  "name": "mutation-cache-inconsistency",
+  "steps": [
+    {
+      "kind": "open"
+    },
+    {
+      "kind": "clickByTestId",
+      "testId": "archive-paper"
+    },
+    {
+      "kind": "waitForTestId",
+      "testId": "product-list"
+    }
+  ],
+  "observations": [
+    {
+      "id": "visibleProducts",
+      "kind": "textContent",
+      "testId": "product-list",
+      "source": {
+        "file": "src/App.tsx",
+        "line": 42,
+        "symbol": "ProductArchivePanel"
+      },
+      "graphNodeId": "product-archive-panel"
+    },
+    {
+      "id": "serverProducts",
+      "kind": "textContent",
+      "testId": "server-products",
+      "source": {
+        "file": "src/App.tsx",
+        "line": 95,
+        "symbol": "onClick"
+      },
+      "graphNodeId": "product-archive-panel-on-click-1-action"
+    }
+  ],
+  "assertions": [
+    {
+      "id": "visible-products-follow-mutation",
+      "actual": "visibleProducts",
+      "equals": "Pencil",
+      "message": "Visible product cache should update after the archive mutation succeeds.",
+      "source": {
+        "file": "src/App.tsx",
+        "line": 67,
+        "symbol": "invalidateQueries"
+      },
+      "graphNodeId": "product-archive-panel-invalidate-1-cache"
+    }
+  ],
+  "repairTarget": {
+    "kind": "ui",
+    "target": "Archive Paper Mutation"
+  },
+  "editTarget": {
+    "file": "src/App.tsx",
+    "line": 67,
+    "symbol": "invalidateQueries"
+  },
+  "suggestedFixShape": "Use the same cache key for the product list query and mutation success invalidation, then verify the browser-visible list updates after archive."
+}

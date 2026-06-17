@@ -1,0 +1,64 @@
+{
+  "name": "mutation-call-cache-inconsistency",
+  "steps": [
+    {
+      "kind": "open"
+    },
+    {
+      "kind": "clickByTestId",
+      "testId": "restore-paper"
+    },
+    {
+      "kind": "waitForTestId",
+      "testId": "product-list"
+    }
+  ],
+  "observations": [
+    {
+      "id": "visibleProducts",
+      "kind": "textContent",
+      "testId": "product-list",
+      "source": {
+        "file": "src/App.tsx",
+        "line": 42,
+        "symbol": "ProductRestorePanel"
+      },
+      "graphNodeId": "product-restore-panel"
+    },
+    {
+      "id": "serverProducts",
+      "kind": "textContent",
+      "testId": "server-products",
+      "source": {
+        "file": "src/App.tsx",
+        "line": 100,
+        "symbol": "onClick"
+      },
+      "graphNodeId": "product-restore-panel-on-click-1-action"
+    }
+  ],
+  "assertions": [
+    {
+      "id": "visible-products-follow-mutate-call-callback",
+      "actual": "visibleProducts",
+      "equals": "Pencil",
+      "message": "Visible product cache should update after the mutate call onSettled callback runs.",
+      "source": {
+        "file": "src/App.tsx",
+        "line": 75,
+        "symbol": "invalidateQueries"
+      },
+      "graphNodeId": "product-restore-panel-invalidate-2-cache"
+    }
+  ],
+  "repairTarget": {
+    "kind": "ui",
+    "target": "Restore Paper Mutation Call"
+  },
+  "editTarget": {
+    "file": "src/App.tsx",
+    "line": 75,
+    "symbol": "invalidateQueries"
+  },
+  "suggestedFixShape": "Use the same cache key for the product list query and mutate call onSettled invalidation, then verify the browser-visible list updates after restore."
+}

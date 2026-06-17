@@ -1,0 +1,66 @@
+{
+  "name": "customer-search-consistency-fixed",
+  "steps": [
+    {
+      "kind": "open"
+    },
+    {
+      "kind": "clickByTestId",
+      "testId": "toggle-fix"
+    }
+  ],
+  "observations": [
+    {
+      "id": "query",
+      "kind": "inputValue",
+      "testId": "customer-search-input",
+      "source": {
+        "file": "src/features/customers/CustomerSearchPanel.tsx",
+        "line": 73,
+        "symbol": "SearchInput"
+      },
+      "graphNodeId": "query-state"
+    },
+    {
+      "id": "renderedCustomer",
+      "kind": "textContent",
+      "testId": "rendered-customer",
+      "source": {
+        "file": "src/features/customers/CustomerCard.tsx",
+        "line": 18,
+        "symbol": "CustomerCard"
+      },
+      "graphNodeId": "selected-customer-state"
+    }
+  ],
+  "assertions": [
+    {
+      "id": "latest-query-rendered",
+      "actual": "renderedCustomer",
+      "equals": "Grace Hopper",
+      "source": {
+        "file": "src/features/customers/CustomerSearchPanel.tsx",
+        "line": 42,
+        "symbol": "useEffect"
+      },
+      "graphNodeId": "customer-search-effect",
+      "message": "Rendered customer does not match the latest query result."
+    }
+  ],
+  "editTarget": {
+    "file": "src/features/customers/CustomerSearchPanel.tsx",
+    "line": 42,
+    "symbol": "useEffect"
+  },
+  "doNotStartFrom": [
+    {
+      "source": {
+        "file": "src/features/customers/CustomerCard.tsx",
+        "line": 18,
+        "symbol": "CustomerCard"
+      },
+      "reason": "CustomerCard renders selectedCustomer but does not own request ordering or state commits."
+    }
+  ],
+  "suggestedFixShape": "Abort or ignore stale responses before committing selectedCustomer."
+}

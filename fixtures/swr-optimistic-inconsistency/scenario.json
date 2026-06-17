@@ -1,0 +1,53 @@
+{
+  "name": "swr-optimistic-inconsistency",
+  "steps": [
+    {
+      "kind": "open"
+    },
+    {
+      "kind": "clickByTestId",
+      "testId": "archive-paper-optimistic"
+    },
+    {
+      "kind": "waitForTestId",
+      "testId": "product-list"
+    }
+  ],
+  "observations": [
+    {
+      "id": "visibleProducts",
+      "kind": "textContent",
+      "testId": "product-list",
+      "source": {
+        "file": "src/App.tsx",
+        "line": 41,
+        "symbol": "ProductSWROptimisticPanel"
+      },
+      "graphNodeId": "product-swroptimistic-panel"
+    }
+  ],
+  "assertions": [
+    {
+      "id": "visible-products-roll-back-after-failed-optimistic-archive",
+      "actual": "visibleProducts",
+      "equals": "Paper, Pencil",
+      "message": "Visible SWR product cache should roll back after the optimistic archive fails.",
+      "source": {
+        "file": "src/App.tsx",
+        "line": 64,
+        "symbol": "mutateProducts"
+      },
+      "graphNodeId": "product-swroptimistic-panel-mutate-1-cache"
+    }
+  ],
+  "repairTarget": {
+    "kind": "ui",
+    "target": "Archive Paper Optimistic"
+  },
+  "editTarget": {
+    "file": "src/App.tsx",
+    "line": 64,
+    "symbol": "mutateProducts"
+  },
+  "suggestedFixShape": "Enable rollbackOnError or remove unsafe optimisticData so the SWR cache rolls back after a failed archive."
+}

@@ -1,0 +1,16 @@
+node_modules
+dist
+.yomi
+.crust
+.serena
+.private
+test-results
+playwright-report
+coverage
+*.tgz
+.git
+.DS_Store
+.env
+.env.*
+docs/.vitepress/cache
+docs/.vitepress/dist

@@ -1,0 +1,51 @@
+{
+  "name": "@isamisushi/yomi",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "build": "tsc -b && vite build",
+    "build:cli": "crust build --entry src/cli.ts --name yomi --target darwin-arm64 --outdir .crust/bin",
+    "build:cli:package": "crust build --package --entry src/cli.ts --name yomi --stage-dir .crust/npm && node scripts/stage-react-export.mjs",
+    "dev": "vite --host 127.0.0.1",
+    "docs:build": "vitepress build docs",
+    "docs:deploy": "flyctl deploy . --config docs/fly.toml",
+    "docs:dev": "vitepress dev docs --host 127.0.0.1",
+    "docs:preview": "vitepress preview docs --host 127.0.0.1",
+    "package:cli": "npm run build:cli:package && node scripts/verify-react-export.mjs && node scripts/verify-packed-install.mjs && crust publish --stage-dir .crust/npm --dry-run",
+    "publish:npm": "npm run build:cli:package && node scripts/verify-react-export.mjs && node scripts/verify-packed-install.mjs && crust publish --stage-dir .crust/npm",
+    "publish:npm:dry-run": "npm run package:cli",
+    "preview": "vite preview --host 127.0.0.1",
+    "test": "bun test tests",
+    "test:package-export": "node scripts/verify-react-export.mjs",
+    "test:packed-install": "node scripts/verify-packed-install.mjs",
+    "typecheck": "tsc --noEmit",
+    "yomi": "bun src/cli.ts",
+    "test:e2e": "playwright test"
+  },
+  "dependencies": {
+    "@crustjs/core": "^0.0.19",
+    "@crustjs/plugins": "^0.1.2",
+    "@crustjs/skills": "^0.1.2",
+    "@crustjs/store": "^0.2.0",
+    "lucide-react": "^0.468.0",
+    "playwright": "^1.61.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "ts-morph": "^28.0.0"
+  },
+  "devDependencies": {
+    "@crustjs/crust": "^0.0.24",
+    "@playwright/test": "^1.61.0",
+    "@tanstack/react-query": "^5.101.0",
+    "@types/node": "^25.9.3",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.2",
+    "swr": "^2.4.1",
+    "typescript": "^6.0.3",
+    "vite": "^8.0.16",
+    "vitepress": "^1.6.4"
+  }
+}

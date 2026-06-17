@@ -1,0 +1,61 @@
+{
+  "name": "instrumented-runtime-trace",
+  "steps": [
+    {
+      "kind": "open"
+    },
+    {
+      "kind": "fillByTestId",
+      "testId": "runtime-query",
+      "value": "agent"
+    },
+    {
+      "kind": "waitForTestId",
+      "testId": "runtime-status"
+    }
+  ],
+  "observations": [
+    {
+      "id": "query",
+      "kind": "inputValue",
+      "testId": "runtime-query",
+      "source": {
+        "file": "src/App.tsx",
+        "line": 18,
+        "symbol": "onChange"
+      },
+      "graphNodeId": "instrumented-panel-on-change-1-action"
+    },
+    {
+      "id": "status",
+      "kind": "textContent",
+      "testId": "runtime-status",
+      "source": {
+        "file": "src/App.tsx",
+        "line": 8,
+        "symbol": "useEffect"
+      },
+      "graphNodeId": "instrumented-panel-query-effect"
+    }
+  ],
+  "assertions": [
+    {
+      "id": "status-follows-query",
+      "actual": "status",
+      "equals": "query:agent",
+      "message": "Status should reflect the latest query after instrumented state/action/effect trace.",
+      "source": {
+        "file": "src/App.tsx",
+        "line": 8,
+        "symbol": "useEffect"
+      },
+      "graphNodeId": "instrumented-panel-query-effect"
+    }
+  ],
+  "editTarget": {
+    "file": "src/App.tsx",
+    "line": 8,
+    "symbol": "useEffect"
+  },
+  "suggestedFixShape": "Inspect the source-linked action, state, and effect trace before editing display-only output."
+}

@@ -1,0 +1,64 @@
+{
+  "name": "swr-cache-inconsistency",
+  "steps": [
+    {
+      "kind": "open"
+    },
+    {
+      "kind": "clickByTestId",
+      "testId": "archive-paper-swr"
+    },
+    {
+      "kind": "waitForTestId",
+      "testId": "product-list"
+    }
+  ],
+  "observations": [
+    {
+      "id": "visibleProducts",
+      "kind": "textContent",
+      "testId": "product-list",
+      "source": {
+        "file": "src/App.tsx",
+        "line": 41,
+        "symbol": "ProductSWRPanel"
+      },
+      "graphNodeId": "product-swrpanel"
+    },
+    {
+      "id": "serverProducts",
+      "kind": "textContent",
+      "testId": "server-products",
+      "source": {
+        "file": "src/App.tsx",
+        "line": 86,
+        "symbol": "onClick"
+      },
+      "graphNodeId": "product-swrpanel-on-click-1-action"
+    }
+  ],
+  "assertions": [
+    {
+      "id": "visible-products-follow-swr-mutate",
+      "actual": "visibleProducts",
+      "equals": "Pencil",
+      "message": "Visible SWR product cache should update after archive.",
+      "source": {
+        "file": "src/App.tsx",
+        "line": 65,
+        "symbol": "mutate"
+      },
+      "graphNodeId": "product-swrpanel-mutate-1-cache"
+    }
+  ],
+  "repairTarget": {
+    "kind": "ui",
+    "target": "Archive Paper SWR"
+  },
+  "editTarget": {
+    "file": "src/App.tsx",
+    "line": 65,
+    "symbol": "mutate"
+  },
+  "suggestedFixShape": "Use the same SWR key for the product list read and mutate revalidation, then verify the browser-visible list updates after archive."
+}
