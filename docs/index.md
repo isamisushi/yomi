@@ -28,10 +28,10 @@ features:
 ## Minimal Loop
 
 ```bash
-npx @isamisushi/yomi@latest index --force
-npx @isamisushi/yomi@latest repair "Customer search"
-npx @isamisushi/yomi@latest plan-trace "Customer search"
-npx @isamisushi/yomi@latest verify browser-scenario --scenarioFile <path> --url <url>
+npx @isamisushi/yomi-cli@latest index --force
+npx @isamisushi/yomi-cli@latest repair "Customer search"
+npx @isamisushi/yomi-cli@latest plan-trace "Customer search"
+npx @isamisushi/yomi-cli@latest verify browser-scenario --scenarioFile <path> --url <url>
 ```
 
 Yomi is not a browser automation framework, React DevTools replacement, or UI

@@ -11,7 +11,7 @@ npm run yomi -- <command>
 Without a global install:
 
 ```bash
-npx @isamisushi/yomi@latest <command>
+npx @isamisushi/yomi-cli@latest <command>
 ```
 
 After global or project-local package installation, the intended command is:
@@ -195,6 +195,7 @@ npm run package:cli
 npm run publish:npm:dry-run
 ```
 
-`package:cli` and `publish:npm:dry-run` build the staged npm packages, verify the
-installed binary and subpath exports, then run a dry-run publish. `publish:npm`
-performs the same checks before publishing.
+`package:cli` and `publish:npm:dry-run` build the staged CLI/runtime packages,
+stage GitHub Release binary assets, verify the installed binary and runtime
+subpath exports, then run a dry-run publish. Tagged releases use the GitHub
+Actions workflow to upload binary assets before publishing npm packages.

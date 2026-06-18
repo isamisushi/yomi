@@ -21,9 +21,9 @@ The current pinned versions are Node.js 22.13.1 and Bun 1.3.13.
 The fastest way to see Yomi's core contract is to use the bundled demo graph.
 
 ```bash
-npx @isamisushi/yomi@latest index --demo --output .yomi/demo-graph.json
-npx @isamisushi/yomi@latest repair "Customer search" --graph .yomi/demo-graph.json
-npx @isamisushi/yomi@latest plan-trace "Customer search" --graph .yomi/demo-graph.json
+npx @isamisushi/yomi-cli@latest index --demo --output .yomi/demo-graph.json
+npx @isamisushi/yomi-cli@latest repair "Customer search" --graph .yomi/demo-graph.json
+npx @isamisushi/yomi-cli@latest plan-trace "Customer search" --graph .yomi/demo-graph.json
 ```
 
 The important output is the repair and trace plan. It should point from a
@@ -35,24 +35,35 @@ target, runtime trace targets, and source locations.
 For repeated use:
 
 ```bash
-npm install -g @isamisushi/yomi
+npm install -g @isamisushi/yomi-cli
 yomi doctor
 ```
 
-The installed CLI uses a prebuilt platform binary. Bun is not required to run
-the installed command.
+The installed CLI downloads a prebuilt platform binary during `postinstall`.
+Bun is not required to run the installed command.
 
-Supported binary packages:
+Downloaded binaries are available for:
 
 - macOS arm64 and x64
 - Linux arm64 and x64
 - Windows arm64 and x64
 
+If your environment blocks install scripts or external downloads, set
+`YOMI_BINARY_PATH=/path/to/yomi` during install to copy a local binary, or set
+`YOMI_SKIP_DOWNLOAD=1` and provide `YOMI_BINARY_PATH` when running `yomi`.
+
 ## Project-Local Install
 
 ```bash
-npm install --save-dev @isamisushi/yomi
+npm install --save-dev @isamisushi/yomi-cli
 npx yomi index
+```
+
+If you apply runtime instrumentation to your React app, also install the runtime
+adapter package:
+
+```bash
+npm install @isamisushi/yomi
 ```
 
 Install agent skills when you want coding agents in the repository to share

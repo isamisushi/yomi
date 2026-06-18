@@ -6,13 +6,13 @@ without requiring a separate React app.
 ## 1. Create the Demo Graph
 
 ```bash
-npx @isamisushi/yomi@latest index --demo --output .yomi/demo-graph.json
+npx @isamisushi/yomi-cli@latest index --demo --output .yomi/demo-graph.json
 ```
 
 ## 2. Ask for a Repair Plan
 
 ```bash
-npx @isamisushi/yomi@latest repair "Customer search" --graph .yomi/demo-graph.json
+npx @isamisushi/yomi-cli@latest repair "Customer search" --graph .yomi/demo-graph.json
 ```
 
 The important fields are:
@@ -28,7 +28,7 @@ stale response behavior, not to the design-system input component.
 ## 3. Ask for Runtime Trace Targets
 
 ```bash
-npx @isamisushi/yomi@latest plan-trace "Customer search" --graph .yomi/demo-graph.json
+npx @isamisushi/yomi-cli@latest plan-trace "Customer search" --graph .yomi/demo-graph.json
 ```
 
 The output includes:
@@ -47,14 +47,14 @@ whole app.
 Run a deterministic verifier:
 
 ```bash
-npx @isamisushi/yomi@latest verify stale-response
-npx @isamisushi/yomi@latest verify stale-response-fixed
+npx @isamisushi/yomi-cli@latest verify stale-response
+npx @isamisushi/yomi-cli@latest verify stale-response-fixed
 ```
 
 For a real browser scenario:
 
 ```bash
-npx @isamisushi/yomi@latest verify browser-scenario \
+npx @isamisushi/yomi-cli@latest verify browser-scenario \
   --scenarioFile fixtures/scenarios/customer-search-consistency-graph.json \
   --graph .yomi/demo-graph.json \
   --url http://127.0.0.1:5173

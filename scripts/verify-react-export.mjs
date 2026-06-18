@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
 const projectRoot = resolve(import.meta.dirname, "..");
-const packageRoot = resolve(projectRoot, ".crust/npm/root");
+const packageRoot = resolve(projectRoot, ".crust/npm/runtime");
 const packageName = "@isamisushi/yomi";
 const reactImport = `${packageName}/react`;
 const queryImport = `${packageName}/tanstack-query`;

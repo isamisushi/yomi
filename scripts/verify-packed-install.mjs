@@ -14,56 +14,57 @@ const projectRoot = resolve(import.meta.dirname, "..");
 const stageRoot = resolve(projectRoot, ".crust/npm");
 const manifestPath = join(stageRoot, "manifest.json");
 const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
-const rootPackageName = manifest.root.name;
-const reactImport = `${rootPackageName}/react`;
-const queryImport = `${rootPackageName}/tanstack-query`;
+const cliPackageName = manifest.root.name;
+const runtimePackageName = manifest.runtime?.name ?? "@isamisushi/yomi";
+const reactImport = `${runtimePackageName}/react`;
+const queryImport = `${runtimePackageName}/tanstack-query`;
 const expectedPlatforms = [
   {
     target: "linux-x64",
-    name: "@isamisushi/yomi-linux-x64",
     os: "linux",
     cpu: "x64",
+    binaryFilename: "yomi-bun-linux-x64-baseline",
   },
   {
     target: "linux-arm64",
-    name: "@isamisushi/yomi-linux-arm64",
     os: "linux",
     cpu: "arm64",
+    binaryFilename: "yomi-bun-linux-arm64",
   },
   {
     target: "darwin-x64",
-    name: "@isamisushi/yomi-darwin-x64",
     os: "darwin",
     cpu: "x64",
+    binaryFilename: "yomi-bun-darwin-x64",
   },
   {
     target: "darwin-arm64",
-    name: "@isamisushi/yomi-darwin-arm64",
     os: "darwin",
     cpu: "arm64",
+    binaryFilename: "yomi-bun-darwin-arm64",
   },
   {
     target: "windows-x64",
-    name: "@isamisushi/yomi-windows-x64",
     os: "win32",
     cpu: "x64",
+    binaryFilename: "yomi-bun-windows-x64-baseline.exe",
   },
   {
     target: "windows-arm64",
-    name: "@isamisushi/yomi-windows-arm64",
     os: "win32",
     cpu: "arm64",
+    binaryFilename: "yomi-bun-windows-arm64.exe",
   },
 ];
 
-assertPlatformPackages();
+assertStagedPackages();
 
-const platformPackage = manifest.packages.find(
-  (packageInfo) => packageInfo.os === process.platform && packageInfo.cpu === process.arch,
+const platform = expectedPlatforms.find(
+  (candidate) => candidate.os === process.platform && candidate.cpu === process.arch,
 );
 
-if (!platformPackage) {
-  throw new Error(`No staged yomi package for ${process.platform}-${process.arch}`);
+if (!platform) {
+  throw new Error(`No bundled yomi binary expected for ${process.platform}-${process.arch}`);
 }
 
 const tempRoot = mkdtempSync(join(tmpdir(), "yomi-packed-install-"));
@@ -74,9 +75,17 @@ mkdirSync(packRoot, { recursive: true });
 mkdirSync(appRoot, { recursive: true });
 
 function run(command, args, cwd) {
+  return runWithEnv(command, args, cwd, {});
+}
+
+function runWithEnv(command, args, cwd, env) {
   const result = spawnSync(command, args, {
     cwd,
     encoding: "utf8",
+    env: {
+      ...process.env,
+      ...env,
+    },
     stdio: "pipe",
   });
 
@@ -107,74 +116,49 @@ function npmPack(packageDir) {
   return join(packRoot, filename);
 }
 
-function assertPlatformPackages() {
-  if (manifest.root.name !== rootPackageName) {
+function assertStagedPackages() {
+  if (manifest.root.name !== cliPackageName) {
     throw new Error("Manifest root package name is inconsistent.");
-  }
-
-  const actualTargets = new Set(manifest.packages.map((packageInfo) => packageInfo.target));
-  const expectedTargets = new Set(expectedPlatforms.map((platform) => platform.target));
-  for (const target of expectedTargets) {
-    if (!actualTargets.has(target)) {
-      throw new Error(`Missing staged platform package for ${target}`);
-    }
-  }
-  for (const target of actualTargets) {
-    if (!expectedTargets.has(target)) {
-      throw new Error(`Unexpected staged platform package for ${target}`);
-    }
   }
 
   const rootPackageJson = JSON.parse(
     readFileSync(join(stageRoot, manifest.root.dir, "package.json"), "utf8"),
   );
-  if (rootPackageJson.name !== rootPackageName) {
+  if (rootPackageJson.name !== cliPackageName) {
     throw new Error(`Root package name mismatch: ${rootPackageJson.name}`);
+  }
+  if (rootPackageJson.optionalDependencies !== undefined) {
+    throw new Error("CLI package should download platform binaries instead of optionalDependencies.");
   }
 
   for (const expected of expectedPlatforms) {
-    const packageInfo = manifest.packages.find(
-      (candidate) => candidate.target === expected.target,
-    );
-    if (packageInfo === undefined) {
-      throw new Error(`Missing manifest entry for ${expected.target}`);
+    const assetPath = join(stageRoot, manifest.assets.dir, `yomi-${expected.target}${expected.os === "win32" ? ".exe" : ""}`);
+    if (!existsSync(assetPath)) {
+      throw new Error(`Missing release asset for ${expected.target}`);
     }
-    if (
-      packageInfo.name !== expected.name ||
-      packageInfo.os !== expected.os ||
-      packageInfo.cpu !== expected.cpu
-    ) {
-      throw new Error(`Manifest metadata mismatch for ${expected.target}`);
-    }
+  }
+  if (!existsSync(join(stageRoot, manifest.assets.dir, "checksums.txt"))) {
+    throw new Error("Missing release asset checksums.txt");
+  }
 
-    const packageJsonPath = join(stageRoot, packageInfo.dir, "package.json");
-    const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf8"));
-    if (packageJson.name !== expected.name) {
-      throw new Error(`Package name mismatch for ${expected.target}: ${packageJson.name}`);
-    }
-    if (packageJson.os?.[0] !== expected.os || packageJson.cpu?.[0] !== expected.cpu) {
-      throw new Error(`Package os/cpu mismatch for ${expected.target}`);
-    }
-    if (!existsSync(join(stageRoot, packageInfo.dir, packageInfo.bin))) {
-      throw new Error(`Missing binary for ${expected.target}: ${packageInfo.bin}`);
-    }
-    if (rootPackageJson.optionalDependencies?.[expected.name] !== manifest.version) {
-      throw new Error(`Root optional dependency missing for ${expected.name}`);
-    }
+  const runtimePackageJson = JSON.parse(
+    readFileSync(join(stageRoot, manifest.runtime.dir, "package.json"), "utf8"),
+  );
+  if (runtimePackageJson.name !== runtimePackageName) {
+    throw new Error(`Runtime package name mismatch: ${runtimePackageJson.name}`);
+  }
+  if (runtimePackageJson.bin !== undefined) {
+    throw new Error("Runtime package should not expose a CLI bin.");
   }
 }
 
-const platformTarballs = new Map(
-  manifest.packages.map((packageInfo) => [
-    packageInfo.name,
-    npmPack(join(stageRoot, packageInfo.dir)),
-  ]),
-);
-const platformTarball = platformTarballs.get(platformPackage.name);
-if (platformTarball === undefined) {
-  throw new Error(`No packed tarball for ${platformPackage.name}`);
-}
 const rootTarball = npmPack(join(stageRoot, manifest.root.dir));
+const runtimeTarball = npmPack(join(stageRoot, manifest.runtime.dir));
+const currentAssetPath = join(
+  stageRoot,
+  manifest.assets.dir,
+  `yomi-${platform.target}${platform.os === "win32" ? ".exe" : ""}`,
+);
 
 writeFileSync(
   join(appRoot, "package.json"),
@@ -190,17 +174,20 @@ writeFileSync(
   "utf8",
 );
 
-run(
+runWithEnv(
   "npm",
   [
     "install",
     rootTarball,
-    platformTarball,
+    runtimeTarball,
     "--no-audit",
     "--no-fund",
     "--legacy-peer-deps",
   ],
   appRoot,
+  {
+    YOMI_BINARY_PATH: currentAssetPath,
+  },
 );
 
 mkdirSync(join(appRoot, "node_modules"), { recursive: true });
@@ -356,11 +343,11 @@ run(
 
 console.log(
   [
-    `Verified packed install for ${rootPackageName} and ${platformPackage.name}.`,
-    `  root: ${basename(rootTarball)}`,
-    `  platform: ${basename(platformTarball)}`,
+    `Verified packed install for ${cliPackageName} and ${runtimePackageName}.`,
+    `  cli: ${basename(rootTarball)}`,
+    `  runtime: ${basename(runtimeTarball)}`,
     `  platforms: ${expectedPlatforms.map((platform) => platform.target).join(", ")}`,
-    `  checks: all platform packages, CLI bin, npm exec, JSON error output, yomi skill command/install, yomi doctor/examples commands, ${reactImport} runtime/type import, ${queryImport} runtime/type import`,
+    `  checks: release assets, CLI postinstall, CLI bin, npm exec, JSON error output, yomi skill command/install, yomi doctor/examples commands, ${reactImport} runtime/type import, ${queryImport} runtime/type import`,
     skillInstallCheck.stdout.trim(),
     runtimeCheck.stdout.trim(),
   ]

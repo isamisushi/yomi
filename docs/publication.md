@@ -90,22 +90,31 @@ simple, and familiar to JavaScript ecosystem users.
 
 ## npm Publication Notes
 
-The source `package.json` remains private, while the Crust-staged npm package is
-public:
+The source `package.json` remains private, while staged npm packages are public:
 
 ```json
-{ "name": "@isamisushi/yomi", "private": true, "version": "0.1.0" }
+{ "name": "@isamisushi/yomi-cli", "private": true, "version": "0.1.0" }
 ```
 
 Before npm publication:
 
-- keep the npm package under `@isamisushi/yomi`; `yomi` is already taken on npm
-- keep the source package private; publish from `.crust/npm`
-- keep macOS, Linux, and Windows platform packages staged for arm64 and x64
-- verify `bin`
+- keep the CLI package under `@isamisushi/yomi-cli`; `yomi` is already taken on npm
+- keep React runtime adapters under `@isamisushi/yomi`
+- keep the source package private; publish from staged packages in `.crust/npm`
+- stage macOS, Linux, and Windows CLI binaries for arm64 and x64 as GitHub Release assets
+- upload release assets and `checksums.txt` before npm publication
+- verify the `yomi` bin
 - verify subpath exports such as `@isamisushi/yomi/react` and `@isamisushi/yomi/tanstack-query`
 - verify package contents with `npm run package:cli`
 - keep Crust staging output out of the committed tree
+
+The release workflow in `.github/workflows/release.yml` is the intended publish
+path. It runs on `v*` tags, stages packages and binary assets, verifies a packed
+install through `YOMI_BINARY_PATH`, uploads GitHub Release assets, then publishes
+`@isamisushi/yomi` and `@isamisushi/yomi-cli` to npm.
+
+The tag must match `package.json` exactly. For version `0.1.0`, push `v0.1.0`.
+The workflow fails before building when the tag and package version differ.
 
 ## What to Be Honest About
 

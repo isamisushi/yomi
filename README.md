@@ -20,19 +20,19 @@ Yomi is not a browser automation wrapper, generic repo graph, or UI generation p
 Try the demo graph:
 
 ```bash
-npx @isamisushi/yomi@latest index --demo --output .yomi/demo-graph.json
-npx @isamisushi/yomi@latest repair "Customer search" --graph .yomi/demo-graph.json
-npx @isamisushi/yomi@latest plan-trace "Customer search" --graph .yomi/demo-graph.json
+npx @isamisushi/yomi-cli@latest index --demo --output .yomi/demo-graph.json
+npx @isamisushi/yomi-cli@latest repair "Customer search" --graph .yomi/demo-graph.json
+npx @isamisushi/yomi-cli@latest plan-trace "Customer search" --graph .yomi/demo-graph.json
 ```
 
 For repeated use:
 
 ```bash
-npm install -g @isamisushi/yomi
+npm install -g @isamisushi/yomi-cli
 yomi doctor
 ```
 
-The npm package installs a prebuilt `yomi` binary for macOS, Windows, and Linux on arm64/x64. Bun is not required to run the installed CLI.
+The CLI package downloads the matching prebuilt `yomi` binary for macOS, Windows, or Linux during install. Bun is not required to run the installed CLI.
 
 ## What It Does
 
@@ -86,13 +86,14 @@ This installs generated command guidance plus Yomi's React repair and instrument
 
 ## Package
 
-The npm package is prepared as `@isamisushi/yomi` and exposes:
+The npm packages are split by role:
 
-- `yomi` CLI
-- `@isamisushi/yomi/react`
-- `@isamisushi/yomi/tanstack-query`
+- `@isamisushi/yomi-cli` exposes the `yomi` CLI.
+- `@isamisushi/yomi` exposes React runtime adapters:
+  - `@isamisushi/yomi/react`
+  - `@isamisushi/yomi/tanstack-query`
 
-Platform packages are staged for macOS, Linux, and Windows on arm64/x64.
+The CLI package is small. Its `postinstall` step downloads the current platform binary from GitHub Releases and verifies its checksum.
 
 ## License
 

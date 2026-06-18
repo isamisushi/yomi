@@ -4,7 +4,7 @@ Yomi can install command guidance as project-local agent skills through the
 Crust skills plugin.
 
 ```bash
-npx @isamisushi/yomi@latest skill --all --scope project
+npx @isamisushi/yomi-cli@latest skill --all --scope project
 ```
 
 In this repository:
@@ -73,7 +73,7 @@ Re-run installation when the CLI changes:
 yomi skill update --all --scope project
 ```
 
-Do this after upgrading `@isamisushi/yomi`, changing command names, or changing
+Do this after upgrading `@isamisushi/yomi-cli`, changing command names, or changing
 the bundled workflow skills. Otherwise an agent may follow stale flags or stale
 workflow rules.
 
@@ -82,9 +82,9 @@ workflow rules.
 For a new repository, the recommended setup is:
 
 ```bash
-npx @isamisushi/yomi@latest index --force
-npx @isamisushi/yomi@latest doctor
-npx @isamisushi/yomi@latest skill --all --scope project
+npx @isamisushi/yomi-cli@latest index --force
+npx @isamisushi/yomi-cli@latest doctor
+npx @isamisushi/yomi-cli@latest skill --all --scope project
 ```
 
 Then commit the generated project-local skills only if you want every coding

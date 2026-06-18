@@ -1,5 +1,5 @@
 {
-  "name": "@isamisushi/yomi",
+  "name": "@isamisushi/yomi-cli",
   "version": "0.1.0",
   "private": true,
   "license": "MIT",
@@ -18,8 +18,8 @@
     "docs:deploy": "flyctl deploy . --config docs/fly.toml",
     "docs:dev": "vitepress dev docs --host 127.0.0.1",
     "docs:preview": "vitepress preview docs --host 127.0.0.1",
-    "package:cli": "npm run build:cli:package && node scripts/verify-react-export.mjs && node scripts/verify-packed-install.mjs && crust publish --stage-dir .crust/npm --dry-run",
-    "publish:npm": "npm run build:cli:package && node scripts/verify-react-export.mjs && node scripts/verify-packed-install.mjs && crust publish --stage-dir .crust/npm",
+    "package:cli": "npm run build:cli:package && node scripts/verify-react-export.mjs && node scripts/verify-packed-install.mjs && node scripts/publish-staged-packages.mjs --dry-run",
+    "publish:npm": "npm run build:cli:package && node scripts/verify-react-export.mjs && node scripts/verify-packed-install.mjs && node scripts/publish-staged-packages.mjs",
     "publish:npm:dry-run": "npm run package:cli",
     "preview": "vite preview --host 127.0.0.1",
     "test": "bun test tests",
