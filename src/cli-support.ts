@@ -1532,7 +1532,7 @@ async function fingerprintProject(projectRoot: string): Promise<string> {
 
   for (const filePath of files) {
     const relativePath = relative(projectRoot, filePath);
-    const contents = await readFile(filePath);
+    const contents = await readFingerprintFile(filePath);
     hash.update(relativePath);
     hash.update("\0");
     hash.update(contents);
@@ -1540,6 +1540,26 @@ async function fingerprintProject(projectRoot: string): Promise<string> {
   }
 
   return hash.digest("hex");
+}
+
+async function readFingerprintFile(filePath: string): Promise<Buffer> {
+  try {
+    const fileStat = await stat(filePath);
+    if (!fileStat.isFile()) {
+      throw new Error(`Fingerprint path is not a file: ${filePath}`);
+    }
+    return await readFile(filePath);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    const wrapped = new Error(`Failed to read fingerprint file ${filePath}: ${message}`);
+    if (error instanceof Error) {
+      const code = getErrorCode(error);
+      if (code !== undefined) {
+        (wrapped as NodeJS.ErrnoException).code = code;
+      }
+    }
+    throw wrapped;
+  }
 }
 
 async function collectFingerprintFiles(projectRoot: string): Promise<readonly string[]> {
@@ -1584,6 +1604,16 @@ function shouldIgnoreFingerprintPath(relativePath: string): boolean {
     relativePath.startsWith("node_modules/") ||
     relativePath === "dist" ||
     relativePath.startsWith("dist/") ||
+    relativePath === "build" ||
+    relativePath.startsWith("build/") ||
+    relativePath === "out" ||
+    relativePath.startsWith("out/") ||
+    relativePath === "coverage" ||
+    relativePath.startsWith("coverage/") ||
+    relativePath === ".next" ||
+    relativePath.startsWith(".next/") ||
+    relativePath === ".turbo" ||
+    relativePath.startsWith(".turbo/") ||
     relativePath === ".crust" ||
     relativePath.startsWith(".crust/") ||
     relativePath === ".git" ||

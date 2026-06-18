@@ -398,6 +398,134 @@ describe("extractProjectGraph", () => {
     );
   });
 
+  test("uses label htmlFor text as the visible label for form controls", async () => {
+    const projectPath = await createFixtureProject({
+      "src/App.tsx": `
+        import { useEffect, useState } from "react";
+
+        type Customer = {
+          id: string;
+          name: string;
+        };
+
+        export function App() {
+          const [query, setQuery] = useState("");
+          const [customers, setCustomers] = useState<Customer[]>([]);
+
+          useEffect(() => {
+            let cancelled = false;
+
+            async function loadCustomers() {
+              const response = await fetch("/api/customers?q=" + encodeURIComponent(query));
+              const data = (await response.json()) as Customer[];
+              if (!cancelled) {
+                setCustomers(data);
+              }
+            }
+
+            void loadCustomers();
+
+            return () => {
+              cancelled = true;
+            };
+          }, [query]);
+
+          return (
+            <main>
+              <label htmlFor="customer-search">Customer search</label>
+              <input
+                id="customer-search"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+              />
+              <ul>
+                {customers.map((customer) => (
+                  <li key={customer.id}>{customer.name}</li>
+                ))}
+              </ul>
+            </main>
+          );
+        }
+      `,
+    });
+
+    const graph = extractProjectGraph({ projectPath });
+
+    expect(graph.ui).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: "app-input-1-ui",
+          label: "Customer search",
+          role: "input",
+          actionId: "app-on-change-1-action",
+          stateIds: ["app-query-state"],
+          source: expect.objectContaining({
+            file: "src/App.tsx",
+            symbol: "<input>",
+          }),
+        }),
+      ]),
+    );
+  });
+
+  test("skips package export entries that resolve to directories", async () => {
+    const projectPath = await createFixtureProject({
+      "src/App.tsx": `
+        import { DirectoryWidget } from "@acme/directory-widget";
+
+        export function App() {
+          return (
+            <main>
+              <DirectoryWidget />
+            </main>
+          );
+        }
+      `,
+      "node_modules/@acme/directory-widget/package.json": `
+        {
+          "name": "@acme/directory-widget",
+          "version": "0.0.0",
+          "exports": {
+            ".": {
+              "import": "./dist",
+              "default": "./dist"
+            }
+          }
+        }
+      `,
+      "node_modules/@acme/directory-widget/dist/index.js": `
+        "use client";
+
+        export function DirectoryWidget() {
+          return null;
+        }
+      `,
+    });
+
+    const graph = extractProjectGraph({ projectPath });
+
+    expect(graph.components.map((component) => component.id)).toEqual(["app"]);
+  });
+
+  test("does not index generated Next output directories", async () => {
+    const projectPath = await createFixtureProject({
+      "src/App.tsx": `
+        export function App() {
+          return <main>Source app</main>;
+        }
+      `,
+      ".next/server/pages/GeneratedPage.tsx": `
+        export function GeneratedPage() {
+          return <main>Generated app</main>;
+        }
+      `,
+    });
+
+    const graph = extractProjectGraph({ projectPath });
+
+    expect(graph.components.map((component) => component.id)).toEqual(["app"]);
+  });
+
   test("extracts React Hook Form field validation and error ownership", async () => {
     const projectPath = await createFixtureProject({
       "src/features/billing/SupportValidationForm.tsx": `

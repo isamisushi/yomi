@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { dirname, relative, resolve } from "node:path";
 
 import {
@@ -92,6 +92,12 @@ type ComponentExtraction = {
   readonly externalStoreUsages: readonly ExternalStoreUsageNode[];
   readonly reduxActionUsages: readonly ReduxActionUsageNode[];
   readonly reduxSelectorUsages: readonly ReduxSelectorUsageNode[];
+};
+
+type ProjectExtractionIndex = {
+  readonly routeObjectsByComponentName: ReadonlyMap<string, readonly ObjectLiteralExpression[]>;
+  readonly reduxSourceFiles: readonly SourceFile[];
+  readonly reduxSelectedSourceByPath: Map<string, SourceLocation | undefined>;
 };
 
 type StateBinding = {
@@ -192,6 +198,10 @@ type PropObjectProperty = {
   readonly handlerText: string;
 };
 
+type AssociatedLabel = {
+  readonly text: string;
+};
+
 const routeNamePattern = /(?:Page|Route|Layout)$/;
 const routePathPattern = /(?:^|\/)(?:app|pages|routes)(?:\/|$)/;
 const designSystemPathPattern = /(?:^|\/)(?:components\/ui|design-system|ui)(?:\/|$)/;
@@ -230,6 +240,7 @@ export function extractProjectGraph(input: ExtractProjectGraphInput): YomiGraph 
 
   const candidates = collectComponentCandidates(sourceFiles, projectRoot);
   const externalPackageComponents = collectExternalPackageClientComponents(sourceFiles, projectRoot);
+  const projectIndex = createProjectExtractionIndex(projectSourceFiles);
   const componentIdsByName = new Map(
     [
       ...candidates.map((candidate) => [candidate.name, candidate.id] as const),
@@ -266,6 +277,7 @@ export function extractProjectGraph(input: ExtractProjectGraphInput): YomiGraph 
     extractComponent(
       candidate,
       projectRoot,
+      projectIndex,
       componentIdsByName,
       componentRuntimeById,
       componentRoleById,
@@ -310,8 +322,15 @@ export function extractProjectGraph(input: ExtractProjectGraphInput): YomiGraph 
 
 function createSourceProject(projectRoot: string): Project {
   const configPath = resolve(projectRoot, "tsconfig.json");
+  const sourceFilePaths = collectProjectSourceFilePaths(projectRoot);
+
   if (existsSync(configPath)) {
-    return new Project({ tsConfigFilePath: configPath });
+    const project = new Project({
+      tsConfigFilePath: configPath,
+      skipAddingFilesFromTsConfig: true,
+    });
+    project.addSourceFilesAtPaths(sourceFilePaths);
+    return project;
   }
 
   const project = new Project({
@@ -324,22 +343,34 @@ function createSourceProject(projectRoot: string): Project {
     },
     skipAddingFilesFromTsConfig: true,
   });
-  project.addSourceFilesAtPaths(collectFallbackSourceFiles(projectRoot));
+  project.addSourceFilesAtPaths(sourceFilePaths);
   return project;
 }
 
-function collectFallbackSourceFiles(projectRoot: string): readonly string[] {
-  return [
-    `${projectRoot}/**/*.ts`,
-    `${projectRoot}/**/*.tsx`,
-    `${projectRoot}/**/*.js`,
-    `${projectRoot}/**/*.jsx`,
-    `!${projectRoot}/node_modules/**`,
-    `!${projectRoot}/dist/**`,
-    `!${projectRoot}/.crust/**`,
-    `!${projectRoot}/.yomi/**`,
-    `!${projectRoot}/.git/**`,
-  ];
+function collectProjectSourceFilePaths(projectRoot: string): readonly string[] {
+  const filePaths: string[] = [];
+
+  function visit(directory: string): void {
+    for (const entry of readdirSync(directory, { withFileTypes: true })) {
+      const entryPath = resolve(directory, entry.name);
+      const relativePath = normalizePath(relative(projectRoot, entryPath));
+      if (shouldIgnoreProjectSourcePath(relativePath)) {
+        continue;
+      }
+
+      if (entry.isDirectory()) {
+        visit(entryPath);
+        continue;
+      }
+
+      if (entry.isFile() && /\.(tsx|jsx|ts|js)$/.test(entry.name)) {
+        filePaths.push(entryPath);
+      }
+    }
+  }
+
+  visit(projectRoot);
+  return filePaths.sort();
 }
 
 function shouldIndexProjectSourceFile(sourceFile: SourceFile, projectRoot: string): boolean {
@@ -352,15 +383,72 @@ function shouldIndexProjectSourceFile(sourceFile: SourceFile, projectRoot: strin
   return (
     fileName.startsWith(`${root}/`) &&
     /\.(tsx|jsx|ts|js)$/.test(fileName) &&
-    !fileName.includes("/node_modules/") &&
-    !fileName.includes("/dist/") &&
-    !fileName.includes("/.crust/") &&
-    !fileName.includes("/.yomi/")
+    !shouldIgnoreProjectSourcePath(normalizePath(relative(root, fileName)))
+  );
+}
+
+function shouldIgnoreProjectSourcePath(relativePath: string): boolean {
+  return relativePath.split("/").some((part) =>
+    part === "node_modules" ||
+    part === "dist" ||
+    part === "build" ||
+    part === "out" ||
+    part === "coverage" ||
+    part === ".next" ||
+    part === ".turbo" ||
+    part === ".crust" ||
+    part === ".yomi" ||
+    part === ".git"
   );
 }
 
 function shouldIndexComponentSourceFile(sourceFile: SourceFile): boolean {
   return /\.(tsx|jsx)$/.test(normalizePath(sourceFile.getFilePath()));
+}
+
+function createProjectExtractionIndex(
+  sourceFiles: readonly SourceFile[],
+): ProjectExtractionIndex {
+  return {
+    routeObjectsByComponentName: collectRouteObjectsByComponentName(sourceFiles),
+    reduxSourceFiles: sourceFiles.filter(isReduxSourceFile),
+    reduxSelectedSourceByPath: new Map(),
+  };
+}
+
+function collectRouteObjectsByComponentName(
+  sourceFiles: readonly SourceFile[],
+): ReadonlyMap<string, readonly ObjectLiteralExpression[]> {
+  const routeObjectsByComponentName = new Map<string, ObjectLiteralExpression[]>();
+
+  for (const sourceFile of sourceFiles) {
+    sourceFile.forEachDescendant((node) => {
+      if (!Node.isObjectLiteralExpression(node)) {
+        return undefined;
+      }
+
+      const componentName = getRouteComponentName(node);
+      if (componentName === undefined) {
+        return undefined;
+      }
+
+      const routeObjects = routeObjectsByComponentName.get(componentName) ?? [];
+      routeObjects.push(node);
+      routeObjectsByComponentName.set(componentName, routeObjects);
+      return undefined;
+    });
+  }
+
+  return routeObjectsByComponentName;
+}
+
+function isReduxSourceFile(sourceFile: SourceFile): boolean {
+  const text = sourceFile.getFullText();
+  return (
+    text.includes("configureStore") ||
+    text.includes("createSlice") ||
+    text.includes("initialState")
+  );
 }
 
 function collectClientRuntimeSourceFiles(
@@ -639,12 +727,20 @@ function readPackageClientEntry(
   }
 
   const entryPath = resolve(dirname(packageJsonPath), entry);
-  if (!existsSync(entryPath)) {
+  if (!isReadableFile(entryPath)) {
     return undefined;
   }
 
   const source = readFileSync(entryPath, "utf8");
   return hasSourceTextDirective(source, "use client") ? entry : undefined;
+}
+
+function isReadableFile(filePath: string): boolean {
+  try {
+    return statSync(filePath).isFile();
+  } catch {
+    return false;
+  }
 }
 
 function findPackageJsonPath(projectRoot: string, packageName: string): string | undefined {
@@ -819,13 +915,14 @@ function hasSourceTextDirective(
 function extractComponent(
   candidate: ComponentCandidate,
   projectRoot: string,
+  projectIndex: ProjectExtractionIndex,
   componentIdsByName: ReadonlyMap<string, string>,
   componentRuntimeById: ReadonlyMap<string, ComponentNode["runtime"]>,
   componentRoleById: ReadonlyMap<string, ComponentNode["role"]>,
 ): ComponentExtraction {
   const stateBindings = collectStateBindings(candidate, projectRoot);
   const contextProviderHooks = collectContextProviderHooks(candidate, projectRoot, stateBindings);
-  const routeDataHooks = collectRouteDataHooks(candidate, projectRoot);
+  const routeDataHooks = collectRouteDataHooks(candidate, projectRoot, projectIndex);
   const serverActionBindings = collectServerActionBindings(candidate, projectRoot);
   const nextRouterBindings = collectNextRouterBindings(candidate);
   const hooks = [
@@ -843,7 +940,7 @@ function extractComponent(
   const routerSubmitBindings = collectRouterSubmitBindings(candidate);
   const externalStoreUsages = collectExternalStoreUsageNodes(candidate, projectRoot);
   const reduxActionUsages = collectReduxActionUsageNodes(candidate, projectRoot);
-  const reduxSelectorUsages = collectReduxSelectorUsageNodes(candidate, projectRoot);
+  const reduxSelectorUsages = collectReduxSelectorUsageNodes(candidate, projectRoot, projectIndex);
   const actions = collectActions(
     candidate,
     projectRoot,
@@ -1590,10 +1687,11 @@ function stateHookNode(candidate: ComponentCandidate, binding: StateBinding): Ho
 function collectRouteDataHooks(
   candidate: ComponentCandidate,
   projectRoot: string,
+  projectIndex: ProjectExtractionIndex,
 ): readonly HookNode[] {
   const hooks: HookNode[] = [];
 
-  for (const routeObject of collectRouteObjectsForComponent(candidate)) {
+  for (const routeObject of projectIndex.routeObjectsByComponentName.get(candidate.name) ?? []) {
     const loaderSource = getRoutePropertySource(routeObject, "loader", projectRoot);
     if (loaderSource !== undefined) {
       hooks.push({
@@ -1854,26 +1952,6 @@ function resolveImportedDeclaration(
 
 function isServerActionDeclaration(declaration: FunctionDeclaration): boolean {
   return hasUseServerDirective(declaration.getSourceFile()) || hasUseServerDirective(declaration.getBody());
-}
-
-function collectRouteObjectsForComponent(
-  candidate: ComponentCandidate,
-): readonly ObjectLiteralExpression[] {
-  const routeObjects: ObjectLiteralExpression[] = [];
-
-  for (const sourceFile of candidate.sourceFile.getProject().getSourceFiles()) {
-    sourceFile.forEachDescendant((node) => {
-      if (!Node.isObjectLiteralExpression(node)) {
-        return undefined;
-      }
-      if (getRouteComponentName(node) === candidate.name) {
-        routeObjects.push(node);
-      }
-      return undefined;
-    });
-  }
-
-  return routeObjects;
 }
 
 function getRouteComponentName(routeObject: ObjectLiteralExpression): string | undefined {
@@ -2765,6 +2843,7 @@ function getReferencedReduxActionUsages(
 function collectReduxSelectorUsageNodes(
   candidate: ComponentCandidate,
   projectRoot: string,
+  projectIndex: ProjectExtractionIndex,
 ): readonly ReduxSelectorUsageNode[] {
   const usages: ReduxSelectorUsageNode[] = [];
 
@@ -2789,7 +2868,7 @@ function collectReduxSelectorUsageNodes(
       hookName,
       selector: selector.text,
       selectedPath: selector.selectedPath,
-      selectedSource: getReduxSelectedSource(selector.selectedPath, candidate.sourceFile, projectRoot),
+      selectedSource: getReduxSelectedSource(selector.selectedPath, projectIndex, projectRoot),
       source: sourceLocation(node.getExpression(), projectRoot, hookName),
       note: `${candidate.name} reads Redux state ${selector.selectedPath.join(".")} through ${hookName}.`,
     });
@@ -2956,7 +3035,7 @@ function collectReduxSelectorPath(node: MorphNode, stateParameter: string): read
 
 function getReduxSelectedSource(
   selectedPath: readonly string[],
-  sourceFile: SourceFile,
+  projectIndex: ProjectExtractionIndex,
   projectRoot: string,
 ): SourceLocation | undefined {
   const [sliceField, selectedField] = selectedPath;
@@ -2964,13 +3043,20 @@ function getReduxSelectedSource(
     return undefined;
   }
 
-  for (const file of sourceFile.getProject().getSourceFiles()) {
+  const cacheKey = selectedPath.join(".");
+  if (projectIndex.reduxSelectedSourceByPath.has(cacheKey)) {
+    return projectIndex.reduxSelectedSourceByPath.get(cacheKey);
+  }
+
+  for (const file of projectIndex.reduxSourceFiles) {
     const source = getReduxSelectedSourceFromFile(file, sliceField, selectedField, projectRoot);
     if (source !== undefined) {
+      projectIndex.reduxSelectedSourceByPath.set(cacheKey, source);
       return source;
     }
   }
 
+  projectIndex.reduxSelectedSourceByPath.set(cacheKey, undefined);
   return undefined;
 }
 
@@ -5168,6 +5254,7 @@ function collectUiNodes(
 ): readonly UiNode[] {
   const ui: UiNode[] = [];
   const stateIds = stateBindings.map((binding) => binding.state.id);
+  const labelsByControlId = collectAssociatedLabels(candidate);
 
   visitBody(candidate.body, (node) => {
     if (!isJsxOpeningLikeElement(node)) {
@@ -5182,10 +5269,11 @@ function collectUiNodes(
 
     const action = findActionForJsxNode(actions, node, projectRoot);
     const renderedComponentId = componentIdsByName.get(tagName);
+    const associatedLabel = getAssociatedLabel(node, labelsByControlId);
 
     ui.push({
       id: `${candidate.id}-${kebabCase(tagName)}-${ui.length + 1}-ui`,
-      label: getUiLabel(node, tagName, role),
+      label: getUiLabel(node, tagName, role, associatedLabel),
       role,
       componentId: renderedComponentId ?? candidate.id,
       actionId: action?.id,
@@ -5195,6 +5283,34 @@ function collectUiNodes(
   });
 
   return ui;
+}
+
+function collectAssociatedLabels(candidate: ComponentCandidate): ReadonlyMap<string, AssociatedLabel> {
+  const labels = new Map<string, AssociatedLabel>();
+
+  visitBody(candidate.body, (node) => {
+    if (!isJsxOpeningLikeElement(node) || getJsxTagName(node) !== "label") {
+      return;
+    }
+
+    const controlId = getStringAttribute(node, "htmlFor");
+    const text = getStaticJsxText(node);
+    if (controlId === undefined || controlId.trim() === "" || text === undefined) {
+      return;
+    }
+
+    labels.set(controlId.trim(), { text });
+  });
+
+  return labels;
+}
+
+function getAssociatedLabel(
+  node: JsxOpeningLikeElement,
+  labelsByControlId: ReadonlyMap<string, AssociatedLabel>,
+): AssociatedLabel | undefined {
+  const controlId = getStringAttribute(node, "id");
+  return controlId === undefined ? undefined : labelsByControlId.get(controlId.trim());
 }
 
 function findActionForJsxNode(
@@ -5940,12 +6056,17 @@ function getUiLabel(
   node: JsxOpeningLikeElement,
   fallback: string,
   role: UiNode["role"],
+  associatedLabel?: AssociatedLabel,
 ): string {
   for (const attributeName of uiTextAttributes) {
     const value = getStringAttribute(node, attributeName);
     if (value !== undefined && value.trim() !== "") {
       return value.trim();
     }
+  }
+
+  if (associatedLabel !== undefined && associatedLabel.text.trim() !== "") {
+    return associatedLabel.text.trim();
   }
 
   const text = role === "button" ? getStaticJsxText(node) : undefined;

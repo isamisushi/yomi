@@ -2,7 +2,20 @@ import { spawnSync } from "node:child_process";
 
 import { describe, expect, test } from "bun:test";
 
+import packageJson from "../package.json" with { type: "json" };
+
 describe("CLI JSON error boundary", () => {
+  test("prints the package version for root --version", () => {
+    const result = spawnSync("bun", ["src/cli.ts", "--version"], {
+      cwd: process.cwd(),
+      encoding: "utf8",
+    });
+
+    expect(result.status).toBe(0);
+    expect(result.stderr).toBe("");
+    expect(result.stdout.trim()).toBe(packageJson.version);
+  });
+
   test("returns agent-readable JSON when a command throws", () => {
     const result = spawnSync("bun", ["src/cli.ts", "explain", "not-last-failure"], {
       cwd: process.cwd(),

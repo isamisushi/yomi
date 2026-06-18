@@ -4,6 +4,7 @@ import { Crust, type CrustPlugin } from "@crustjs/core";
 import { didYouMeanPlugin, helpPlugin, versionPlugin } from "@crustjs/plugins";
 import { skillPlugin } from "@crustjs/skills";
 
+import packageJson from "../package.json" with { type: "json" };
 import {
   defaultGraphPath,
   explainLastFailure,
@@ -35,6 +36,7 @@ const yomiSkillInstructions = [
   "Do not edit display-only components just because they render the stale or incorrect value; follow Yomi's source-linked behavior owner unless code inspection proves the graph is stale.",
   "All Yomi commands are agent-facing JSON by default; parse `ok`, `data`, and `error` fields instead of scraping terminal prose or stack traces.",
 ];
+export const cliVersion = packageJson.version;
 
 function resolveBundledSkillSourceDir(relativePath: string): string {
   const packageRoot = process.env.YOMI_PACKAGE_ROOT;
@@ -64,10 +66,10 @@ export const app = new Crust("yomi")
   .use(helpPlugin())
   .use(didYouMeanPlugin())
   .use(jsonErrorPlugin())
-  .use(versionPlugin("0.0.0"))
+  .use(versionPlugin(cliVersion))
   .use(
     skillPlugin({
-      version: "0.0.0",
+      version: cliVersion,
       defaultScope: "project",
       autoUpdate: false,
       allowedTools: "Bash(yomi *) Read Grep Glob",
