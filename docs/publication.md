@@ -108,10 +108,20 @@ Before npm publication:
 - verify package contents with `npm run package:cli`
 - keep Crust staging output out of the committed tree
 
-The release workflow in `.github/workflows/release.yml` is the intended publish
-path. It runs on `v*` tags, stages packages and binary assets, verifies a packed
-install through `YOMI_BINARY_PATH`, uploads GitHub Release assets, then publishes
-`@isamisushi/yomi` and `@isamisushi/yomi-cli` to npm.
+The release workflow in `.github/workflows/release.yml` creates GitHub Release
+binary assets only. It runs on `v*` tags, stages packages and binary assets,
+verifies a packed install through `YOMI_BINARY_PATH`, then uploads the binary
+assets and `checksums.txt`.
+
+After the release assets are available, publish npm packages from a local
+authenticated shell:
+
+```bash
+npm run publish:npm
+```
+
+That command rebuilds staged packages, verifies the install path again, and
+publishes `@isamisushi/yomi` plus `@isamisushi/yomi-cli` to npm.
 
 The tag must match `package.json` exactly. For version `0.1.0`, push `v0.1.0`.
 The workflow fails before building when the tag and package version differ.

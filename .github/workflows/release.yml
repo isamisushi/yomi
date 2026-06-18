@@ -66,8 +66,3 @@ jobs:
           tag_name: ${{ steps.release.outputs.tag }}
           files: .crust/npm/assets/*
           fail_on_unmatched_files: true
-
-      - name: Publish npm packages
-        run: node scripts/publish-staged-packages.mjs
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

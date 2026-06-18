@@ -197,5 +197,6 @@ npm run publish:npm:dry-run
 
 `package:cli` and `publish:npm:dry-run` build the staged CLI/runtime packages,
 stage GitHub Release binary assets, verify the installed binary and runtime
-subpath exports, then run a dry-run publish. Tagged releases use the GitHub
-Actions workflow to upload binary assets before publishing npm packages.
+subpath exports, then run a dry-run publish. Tagged releases use GitHub Actions
+to upload binary assets. Run `npm run publish:npm` locally after those assets
+exist.
