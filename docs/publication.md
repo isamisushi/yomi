@@ -117,11 +117,14 @@ After the release assets are available, publish npm packages from a local
 authenticated shell:
 
 ```bash
-npm run publish:npm
+npm run publish:npm:dry-run
+npm run publish:npm:runtime
+npm run publish:npm:cli
 ```
 
-That command rebuilds staged packages, verifies the install path again, and
-publishes `@isamisushi/yomi` plus `@isamisushi/yomi-cli` to npm.
+Publish runtime and CLI packages separately. This avoids losing the whole release
+flow to one npm web-auth session. If one package is already published, publish
+only the missing package.
 
 The tag must match `package.json` exactly. For version `0.1.0`, push `v0.1.0`.
 The workflow fails before building when the tag and package version differ.
